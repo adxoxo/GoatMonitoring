@@ -1,0 +1,16 @@
+# Runtime dependencies shared by all environments.
+# Django pinned to the 5.2 LTS line (supported through April 2028).
+
+Django>=5.2,<5.3
+
+# REST API + admin auth
+djangorestframework>=3.16,<4.0
+djangorestframework-simplejwt>=5.3,<6.0
+django-cors-headers>=4.0,<5.0
+
+# Database
+psycopg2-binary>=2.9,<3.0
+
+# QR code generation (server-side PNG + print PDF)
+segno>=1.5,<2.0
+pillow>=10.0,<13.0
