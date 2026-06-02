@@ -99,3 +99,39 @@ class Goat(models.Model):
 
     def __str__(self):
         return f"{self.tag_number} — {self.name}"
+
+
+# ── QRCode ───────────────────────────────────────────────────────────
+class QRCode(models.Model):
+    """A printed QR tag for a goat. Only one may be active per goat at a time.
+
+    Regenerating a tag (lost/damaged) marks the previous QR ``is_active=False``
+    and creates a new active record — the goat's UUID never changes.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    goat = models.ForeignKey(
+        Goat,
+        on_delete=models.CASCADE,
+        related_name="qr_codes",
+    )
+    image_path = models.CharField(
+        max_length=255,
+        help_text="Path to the QR PNG, relative to MEDIA_ROOT.",
+    )
+    is_active = models.BooleanField(default=True)
+    generated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-generated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["goat"],
+                condition=models.Q(is_active=True),
+                name="one_active_qr_per_goat",
+            ),
+        ]
+
+    def __str__(self):
+        state = "active" if self.is_active else "inactive"
+        return f"QR {self.goat.tag_number} ({state})"
