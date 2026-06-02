@@ -1,0 +1,66 @@
+# =====================================================================
+# GoatedTracking — DEVELOPMENT stack (self-contained)
+#
+#   docker compose -f docker-compose.dev.yml up
+#
+#   Backend  → http://localhost:8000   (Django runserver, hot reload)
+#   Frontend → http://localhost:5173   (Vite dev server, HMR)
+#   Postgres → localhost:5432          (exposed for local DB tools)
+#
+# No Nginx in dev — the browser hits Django and Vite directly. Source is
+# bind-mounted for live reload.
+# =====================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: goatfarm_db_dev
+    env_file: backend/.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: goatfarm_backend_dev
+    command: python manage.py runserver 0.0.0.0:8000
+    env_file: backend/.env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+    volumes:
+      - ./backend:/app          # live source for hot reload
+      - /app/media              # keep container media dir isolated
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: node:24-alpine
+    container_name: goatfarm_frontend_dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    environment:
+      # In dev the browser runs on the host and reaches Django via the
+      # published port, so point the API at localhost:8000.
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules       # don't clobber container deps with host
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data_dev:
