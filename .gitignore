@@ -1,0 +1,59 @@
+# ── Python / Django ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# ── Secrets / environment ──────────────────────────────────────────
+# Never commit real env files — copy from .env.example instead
+backend/.env
+frontend/.env
+.env
+!.env.example
+
+# ── Data / media (local-only, never committed) ─────────────────────
+postgres_data/
+backend/media/
+backend/static/staticfiles/
+/backups/
+*.sql
+
+# ── Node / Vite / frontend build ───────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Test / coverage ────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.cache/
+
+# ── Editor / OS ────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code personal settings (shared .claude/ content stays commitable)
+.claude/settings.local.json
+
+# WSL "downloaded from internet" metadata artifacts
+*Zone.Identifier
