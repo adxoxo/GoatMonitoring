@@ -43,7 +43,7 @@ def test_goat_sire_nullable_fk_to_self():
     sire = Goat.objects.create(tag_number="G-SIRE", sex="M")
     kid = Goat.objects.create(tag_number="G-KID1", sex="F", sire=sire)
     assert kid.sire == sire
-    assert sire in Goat.objects.filter(sire=sire)
+    assert kid in sire.sired_offspring.all()
     # nullable
     orphan = Goat.objects.create(tag_number="G-ORPH1", sex="F")
     assert orphan.sire is None
