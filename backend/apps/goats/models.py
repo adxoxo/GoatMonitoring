@@ -135,3 +135,54 @@ class QRCode(models.Model):
     def __str__(self):
         state = "active" if self.is_active else "inactive"
         return f"QR {self.goat.tag_number} ({state})"
+
+
+# ── AreaTransferLog ──────────────────────────────────────────────────
+class RiskLevel(models.TextChoices):
+    """Lineage/inbreeding risk recorded at the time of a transfer."""
+
+    NONE = "none", "None"
+    RELATED = "related", "Related"
+    CLOSELY_RELATED = "closely_related", "Closely related"
+
+
+class AreaTransferLog(models.Model):
+    """An immutable audit record of a goat being moved between areas.
+
+    Written on every transfer regardless of risk level. The first assignment
+    of a goat to an area has a null ``from_area``.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    goat = models.ForeignKey(
+        Goat,
+        on_delete=models.CASCADE,
+        related_name="transfer_logs",
+    )
+    from_area = models.ForeignKey(
+        Area,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="transfers_out",
+    )
+    to_area = models.ForeignKey(
+        Area,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="transfers_in",
+    )
+    reason = models.CharField(max_length=255, blank=True)
+    risk_level = models.CharField(
+        max_length=16,
+        choices=RiskLevel.choices,
+        default=RiskLevel.NONE,
+    )
+    transferred_at = models.DateTimeField(auto_now_add=True)
+    transferred_by = models.CharField(max_length=120)
+
+    class Meta:
+        ordering = ["-transferred_at"]
+
+    def __str__(self):
+        return f"{self.goat.tag_number} → {self.to_area} ({self.transferred_at:%Y-%m-%d})"
