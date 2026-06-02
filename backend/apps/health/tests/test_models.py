@@ -56,9 +56,7 @@ def test_healthrecord_next_due_date_nullable():
 
 def test_healthrecord_links_to_vaccination_schedule_nullable():
     goat = Goat.objects.create(tag_number="G-203", sex="F")
-    schedule = VaccinationSchedule.objects.create(
-        vaccine_name="PPR", interval_days=365
-    )
+    schedule = VaccinationSchedule.objects.create(vaccine_name="PPR", interval_days=365)
     record = HealthRecord.objects.create(
         goat=goat,
         record_type="vaccination",
@@ -85,9 +83,7 @@ def test_vaccinationschedule_interval_days_positive():
 
 
 def test_vaccinationschedule_soft_delete_via_is_active():
-    schedule = VaccinationSchedule.objects.create(
-        vaccine_name="FMD", interval_days=180
-    )
+    schedule = VaccinationSchedule.objects.create(vaccine_name="FMD", interval_days=180)
     assert schedule.is_active is True
     schedule.is_active = False
     schedule.save()

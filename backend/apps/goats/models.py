@@ -185,4 +185,6 @@ class AreaTransferLog(models.Model):
         ordering = ["-transferred_at"]
 
     def __str__(self):
-        return f"{self.goat.tag_number} → {self.to_area} ({self.transferred_at:%Y-%m-%d})"
+        return (
+            f"{self.goat.tag_number} → {self.to_area} ({self.transferred_at:%Y-%m-%d})"
+        )
