@@ -11,7 +11,7 @@ from datetime import date
 import pytest
 from django.db import IntegrityError
 
-from apps.goats.models import Area, Goat
+from apps.goats.models import Area, Goat, QRCode
 
 pytestmark = pytest.mark.django_db
 
@@ -93,3 +93,34 @@ def test_area_capacity_is_positive_integer():
 def test_area_str_returns_name():
     area = Area.objects.create(name="Quarantine", capacity=5)
     assert str(area) == "Quarantine"
+
+
+# ── QRCode ───────────────────────────────────────────────────────────
+def test_qrcode_links_to_goat():
+    goat = Goat.objects.create(tag_number="G-100", sex="F")
+    qr = QRCode.objects.create(goat=goat, image_path="qr/G-100.png")
+    assert qr.goat == goat
+    assert qr in goat.qr_codes.all()
+
+
+def test_qrcode_is_active_defaults_to_true():
+    goat = Goat.objects.create(tag_number="G-101", sex="F")
+    qr = QRCode.objects.create(goat=goat, image_path="qr/G-101.png")
+    assert qr.is_active is True
+
+
+def test_only_one_active_qrcode_per_goat():
+    goat = Goat.objects.create(tag_number="G-102", sex="F")
+    QRCode.objects.create(goat=goat, image_path="qr/old.png")
+    with pytest.raises(IntegrityError):
+        QRCode.objects.create(goat=goat, image_path="qr/new.png")
+
+
+def test_goat_can_have_multiple_inactive_qrcodes():
+    goat = Goat.objects.create(tag_number="G-103", sex="F")
+    QRCode.objects.create(goat=goat, image_path="qr/v1.png", is_active=False)
+    QRCode.objects.create(goat=goat, image_path="qr/v2.png", is_active=False)
+    active = QRCode.objects.create(goat=goat, image_path="qr/v3.png")
+    assert goat.qr_codes.count() == 3
+    assert goat.qr_codes.filter(is_active=True).count() == 1
+    assert active.is_active is True
