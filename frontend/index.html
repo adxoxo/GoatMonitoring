@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FAF6EE" />
+    <title>GoatedTracking</title>
+
+    <!--
+      Design-system fonts: Syne (headings), IBM Plex Mono (labels/tags),
+      DM Sans (body). See CLAUDE.md "Design system".
+
+      NOTE (local-first): these load from the Google Fonts CDN, which needs
+      internet. The farm network is unreliable, so before production these
+      should be self-hosted (e.g. @fontsource/*) so the UI renders offline.
+      Tracked as a Phase 2 follow-up.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

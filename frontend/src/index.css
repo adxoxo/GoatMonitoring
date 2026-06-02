@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/*
+  Design system — industrial utilitarian, warm earth tones. LOCKED.
+  See CLAUDE.md / ARCHITECTURE.md. Tailwind v4 turns each --color-* token
+  into utilities (bg-bark, text-clay, border-leather, …) and each --font-*
+  into a font utility (font-heading, font-mono, font-body). Components must
+  use these utilities — never hardcoded hex values.
+*/
+@theme {
+  --color-soil: #1c1810;
+  --color-bark: #2e2416;
+  --color-leather: #5c3d1e;
+  --color-rust: #a0522d;
+  --color-clay: #c4703a;
+  --color-wheat: #d4a96a;
+  --color-straw: #e8d5a3;
+  --color-linen: #f4edd8;
+  --color-paper: #faf6ee;
+  --color-moss: #3d5a2e;
+  --color-sage: #6b8f5e;
+  --color-pale-sage: #b8cdb0;
+  --color-sky: #4a7c9e;
+  --color-alert: #c0392b;
+  --color-warn: #d4863a;
+  --color-ok: #4a7a3a;
+
+  --font-heading: "Syne", sans-serif; /* headings, goat names, stats, logo */
+  --font-mono: "IBM Plex Mono", monospace; /* labels, tags, codes, metadata */
+  --font-body: "DM Sans", sans-serif; /* body text, table rows, inputs */
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background-color: var(--color-paper);
+  color: var(--color-soil);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Respect reduced-motion preference globally (design system requirement). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
