@@ -11,7 +11,7 @@ from datetime import date
 import pytest
 from django.db import IntegrityError
 
-from apps.goats.models import Area, Goat, QRCode
+from apps.goats.models import Area, AreaTransferLog, Goat, QRCode, RiskLevel
 
 pytestmark = pytest.mark.django_db
 
@@ -124,3 +124,49 @@ def test_goat_can_have_multiple_inactive_qrcodes():
     assert goat.qr_codes.count() == 3
     assert goat.qr_codes.filter(is_active=True).count() == 1
     assert active.is_active is True
+
+
+# ── AreaTransferLog ──────────────────────────────────────────────────
+def test_areatransferlog_links_to_goat():
+    goat = Goat.objects.create(tag_number="G-300", sex="F")
+    pen_a = Area.objects.create(name="Pen A", capacity=10)
+    pen_b = Area.objects.create(name="Pen B", capacity=10)
+    log = AreaTransferLog.objects.create(
+        goat=goat,
+        from_area=pen_a,
+        to_area=pen_b,
+        reason="weaning",
+        risk_level=RiskLevel.NONE,
+        transferred_by="admin",
+    )
+    assert log.goat == goat
+    assert log in goat.transfer_logs.all()
+
+
+def test_areatransferlog_from_area_nullable():
+    # First assignment has no origin pen.
+    goat = Goat.objects.create(tag_number="G-301", sex="F")
+    pen = Area.objects.create(name="Nursery", capacity=10)
+    log = AreaTransferLog.objects.create(
+        goat=goat,
+        to_area=pen,
+        reason="initial assignment",
+        risk_level=RiskLevel.NONE,
+        transferred_by="system",
+    )
+    assert log.from_area is None
+    assert log.to_area == pen
+
+
+def test_areatransferlog_risk_level_stored():
+    goat = Goat.objects.create(tag_number="G-302", sex="M")
+    pen = Area.objects.create(name="Pen C", capacity=10)
+    log = AreaTransferLog.objects.create(
+        goat=goat,
+        to_area=pen,
+        reason="moved next to a half-sibling",
+        risk_level=RiskLevel.CLOSELY_RELATED,
+        transferred_by="admin",
+    )
+    log.refresh_from_db()
+    assert log.risk_level == RiskLevel.CLOSELY_RELATED
