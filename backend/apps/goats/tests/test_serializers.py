@@ -81,6 +81,30 @@ def test_profile_serializer_includes_recent_health():
     assert "record_type_display" in data["recent_health"][0]
 
 
+def test_profile_serializer_lineage_includes_parents():
+    sire = GoatFactory(sex="M", tag_number="G-SIRE")
+    dam = GoatFactory(sex="F", tag_number="G-DAM")
+    kid = GoatFactory(sire=sire, dam=dam)
+    lineage = GoatProfileSerializer(kid).data["lineage"]
+    assert lineage["sire"]["tag_number"] == "G-SIRE"
+    assert lineage["dam"]["tag_number"] == "G-DAM"
+
+
+def test_profile_serializer_lineage_null_parent_is_none():
+    kid = GoatFactory(sire=None, dam=None)
+    lineage = GoatProfileSerializer(kid).data["lineage"]
+    assert lineage["sire"] is None
+    assert lineage["dam"] is None
+
+
+def test_profile_serializer_lineage_includes_grandparents():
+    grandsire = GoatFactory(sex="M", tag_number="G-GS")
+    dam = GoatFactory(sex="F", sire=grandsire)
+    kid = GoatFactory(dam=dam)
+    lineage = GoatProfileSerializer(kid).data["lineage"]
+    assert lineage["maternal_grandsire"]["tag_number"] == "G-GS"
+
+
 # ── GoatCreateSerializer ─────────────────────────────────────────────
 def test_create_serializer_valid_data():
     serializer = GoatCreateSerializer(data={"tag_number": "G-NEW", "sex": "M"})
