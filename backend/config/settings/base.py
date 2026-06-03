@@ -105,8 +105,13 @@ DATABASES = {
 
 
 # ── auth / passwords ─────────────────────────────────────────────────
+# Custom user model — admin accounts only (workers are unauthenticated).
+AUTH_USER_MODEL = "users.User"
+
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -126,6 +131,9 @@ STATIC_ROOT = BASE_DIR / "static" / "staticfiles"
 MEDIA_URL = env("MEDIA_URL", "/media/")
 MEDIA_ROOT = env("MEDIA_ROOT", str(BASE_DIR / "media"))
 
+# Hostname encoded into QR codes (http://{host}/g/{uuid}).
+FARM_LOCAL_HOSTNAME = env("FARM_LOCAL_HOSTNAME", "goatfarm.local")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
@@ -136,16 +144,12 @@ REST_FRAMEWORK = {
     ),
     # Admin endpoints require auth; worker (public) endpoints opt out with
     # AllowAny per-view. See ARCHITECTURE.md "Permissions".
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
-    "DEFAULT_RENDERER_CLASSES": (
-        "rest_framework.renderers.JSONRenderer",
-    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
     # Public worker log endpoint is throttled (ARCHITECTURE.md "Throttling").
-    "DEFAULT_THROTTLE_CLASSES": (
-        "rest_framework.throttling.ScopedRateThrottle",
-    ),
+    "DEFAULT_THROTTLE_CLASSES": ("rest_framework.throttling.ScopedRateThrottle",),
     "DEFAULT_THROTTLE_RATES": {
         "worker_log": "60/min",
     },
@@ -154,6 +158,8 @@ REST_FRAMEWORK = {
 
 # ── JWT (admin auth) ─────────────────────────────────────────────────
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(env("JWT_ACCESS_TOKEN_MINUTES", "60"))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=int(env("JWT_ACCESS_TOKEN_MINUTES", "60"))
+    ),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(env("JWT_REFRESH_TOKEN_DAYS", "7"))),
 }

@@ -10,7 +10,12 @@ them. PostgreSQL-specific work (e.g. the Phase 3 recursive-CTE ancestor query)
 must be tested against PostgreSQL and will revisit this choice.
 """
 
+import tempfile
+
 from .development import *  # noqa: F401,F403
+
+# Keep QR PNG/PDF writes out of the repo during tests.
+MEDIA_ROOT = tempfile.mkdtemp(prefix="goat-test-media-")
 
 DATABASES = {
     "default": {

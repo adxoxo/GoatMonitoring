@@ -1,3 +1,10 @@
 // Vitest global setup. jest-dom adds matchers like toBeInTheDocument().
-// MSW request handlers are wired here in Phase 2 when API hooks land.
 import '@testing-library/jest-dom'
+import { afterAll, afterEach, beforeAll } from 'vitest'
+
+import { server } from './server'
+
+// MSW lifecycle — unhandled requests fail loudly so tests can't hit the network.
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
