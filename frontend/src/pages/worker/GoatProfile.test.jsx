@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { http, HttpResponse, delay } from 'msw'
 
 import { server } from '@/tests/server'
@@ -7,6 +8,7 @@ import { renderAtRoute } from '@/tests/utils'
 import GoatProfile from '@/pages/worker/GoatProfile'
 
 const PROFILE_URL = 'http://goatfarm.local/api/v1/goats/:uuid/'
+const LOG_URL = 'http://goatfarm.local/api/v1/goats/:uuid/log/'
 
 const baseProfile = {
   id: 'uuid-1',
@@ -75,5 +77,48 @@ describe('GoatProfile (worker view)', () => {
     )
     renderProfile()
     expect(await screen.findByText(/not found/i)).toBeInTheDocument()
+  })
+})
+
+describe('GoatProfile — QuickLogForm', () => {
+  it('renders the quick-log form', async () => {
+    mockProfile()
+    renderProfile()
+    await screen.findByText('Daisy')
+    expect(screen.getByLabelText(/type/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/notes/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
+  })
+
+  it('submits a log entry to the API', async () => {
+    let called = false
+    mockProfile()
+    server.use(
+      http.post(LOG_URL, () => {
+        called = true
+        return HttpResponse.json({ id: 'h1', record_type: 'note' }, { status: 201 })
+      }),
+    )
+    const user = userEvent.setup()
+    renderProfile()
+    await screen.findByText('Daisy')
+    await user.type(screen.getByLabelText(/notes/i), 'Limping on the left')
+    await user.click(screen.getByRole('button', { name: /save/i }))
+    await screen.findByText(/saved/i)
+    expect(called).toBe(true)
+  })
+
+  it('shows a success message after submit', async () => {
+    mockProfile()
+    server.use(
+      http.post(LOG_URL, () =>
+        HttpResponse.json({ id: 'h1', record_type: 'note' }, { status: 201 }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderProfile()
+    await screen.findByText('Daisy')
+    await user.click(screen.getByRole('button', { name: /save/i }))
+    expect(await screen.findByText(/saved/i)).toBeInTheDocument()
   })
 })

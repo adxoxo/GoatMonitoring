@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   IconAlertTriangle,
@@ -7,6 +8,7 @@ import {
 } from '@tabler/icons-react'
 
 import { useGoatProfile } from '@/hooks/useGoatProfile'
+import { useLogHealthEntry } from '@/hooks/useHealth'
 
 // Public QR-scan landing page. Mobile-first, no admin chrome (CLAUDE.md design
 // system: flat design, warm earth tones, readable at arm's length outdoors).
@@ -101,7 +103,85 @@ export default function GoatProfile() {
           </ul>
         )}
       </section>
+
+      <QuickLogForm uuid={goat.id} />
     </main>
+  )
+}
+
+function QuickLogForm({ uuid }) {
+  const [recordType, setRecordType] = useState('checkup')
+  const [description, setDescription] = useState('')
+  const log = useLogHealthEntry(uuid)
+
+  function handleSubmit(event) {
+    event.preventDefault()
+    log.mutate(
+      { record_type: recordType, description },
+      { onSuccess: () => setDescription('') },
+    )
+  }
+
+  return (
+    <section className="mt-6">
+      <h2 className="font-mono text-[10px] uppercase tracking-wider text-rust">
+        Log a note
+      </h2>
+      <form onSubmit={handleSubmit} className="mt-2 rounded-[3px] bg-linen p-3">
+        <label
+          htmlFor="log-type"
+          className="block font-mono text-[10px] uppercase tracking-wider text-rust"
+        >
+          Type
+        </label>
+        <select
+          id="log-type"
+          value={recordType}
+          onChange={(e) => setRecordType(e.target.value)}
+          className="mt-1 min-h-[44px] w-full cursor-pointer rounded-[3px] border border-leather/30 bg-paper px-3 text-sm text-soil"
+        >
+          <option value="checkup">Checkup</option>
+          <option value="vaccination">Vaccination</option>
+          <option value="deworming">Deworming</option>
+          <option value="treatment">Treatment</option>
+          <option value="injury">Injury</option>
+          <option value="note">Note</option>
+        </select>
+
+        <label
+          htmlFor="log-notes"
+          className="mt-3 block font-mono text-[10px] uppercase tracking-wider text-rust"
+        >
+          Notes
+        </label>
+        <textarea
+          id="log-notes"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+          className="mt-1 w-full rounded-[3px] border border-leather/30 bg-paper px-3 py-2 text-sm text-soil"
+        />
+
+        <button
+          type="submit"
+          disabled={log.isPending}
+          className="mt-4 min-h-[44px] w-full cursor-pointer rounded-[3px] bg-clay px-3 font-mono text-[11px] uppercase tracking-wide text-paper hover:bg-clay/90 disabled:opacity-50"
+        >
+          {log.isPending ? 'Saving…' : 'Save note'}
+        </button>
+
+        {log.isSuccess && (
+          <p role="status" className="mt-3 font-mono text-[11px] text-ok">
+            Note saved.
+          </p>
+        )}
+        {log.isError && (
+          <p role="alert" className="mt-3 font-mono text-[11px] text-alert">
+            Could not save. Check the WiFi and try again.
+          </p>
+        )}
+      </form>
+    </section>
   )
 }
 

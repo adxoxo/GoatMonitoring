@@ -1,6 +1,6 @@
 """API tests for the goat registry endpoints (GoatViewSet)."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -9,6 +9,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.goats.models import AreaTransferLog, Goat
 from apps.goats.tests.factories import AreaFactory, GoatFactory
+from apps.health.models import HealthRecord
 
 pytestmark = pytest.mark.django_db
 
@@ -205,6 +206,43 @@ def test_transfer_to_unknown_area_returns_404(admin):
         transfer_url(goat.id), {"target_area_id": str(uuid.uuid4())}, format="json"
     )
     assert resp.status_code == 404
+
+
+# ── worker health log (public) ───────────────────────────────────────
+def log_url(goat_id):
+    return f"/api/v1/goats/{goat_id}/log/"
+
+
+def test_worker_log_endpoint_public_no_auth_required(anon):
+    goat = GoatFactory()
+    resp = anon.post(
+        log_url(goat.id),
+        {"record_type": "note", "description": "Limping"},
+        format="json",
+    )
+    assert resp.status_code == 201
+
+
+def test_worker_log_endpoint_creates_health_record(anon):
+    goat = GoatFactory()
+    anon.post(
+        log_url(goat.id),
+        {"record_type": "note", "description": "Limping"},
+        format="json",
+    )
+    assert HealthRecord.objects.filter(goat=goat).count() == 1
+
+
+def test_worker_log_record_date_defaults_to_today(anon):
+    goat = GoatFactory()
+    anon.post(log_url(goat.id), {"record_type": "note"}, format="json")
+    assert HealthRecord.objects.get(goat=goat).record_date == date.today()
+
+
+def test_worker_log_invalid_record_type_returns_400(anon):
+    goat = GoatFactory()
+    resp = anon.post(log_url(goat.id), {"record_type": "bogus"}, format="json")
+    assert resp.status_code == 400
 
 
 # ── expired token ────────────────────────────────────────────────────
