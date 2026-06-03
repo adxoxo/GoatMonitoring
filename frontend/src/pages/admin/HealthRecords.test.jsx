@@ -54,7 +54,8 @@ describe('HealthRecords page', () => {
     renderPage()
     expect(await screen.findByText('G-001')).toBeInTheDocument()
     expect(screen.getByText('G-002')).toBeInTheDocument()
-    expect(screen.getByText('Vaccination')).toBeInTheDocument()
+    // record_date cell is unique to the table (tab labels collide with type names)
+    expect(screen.getByText('2026-01-10')).toBeInTheDocument()
   })
 
   it('tab filter changes displayed records', async () => {
