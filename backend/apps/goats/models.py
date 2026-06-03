@@ -5,8 +5,18 @@ never deleted; their ``status`` changes instead so all history is preserved.
 """
 
 import uuid
+from dataclasses import dataclass, field
 
 from django.db import models
+
+
+@dataclass
+class PenAssessment:
+    """Result of checking whether a goat can join an area (advisory only)."""
+
+    risk_level: str
+    related_goats: list = field(default_factory=list)  # [(Goat, RiskLevel), ...]
+    can_proceed: bool = True  # the system advises, never blocks
 
 
 # ── Area ─────────────────────────────────────────────────────────────
@@ -152,6 +162,23 @@ class Goat(models.Model):
             return RiskLevel.CLOSELY_RELATED
 
         return RiskLevel.RELATED
+
+    def assess_area(self, area, depth=3):
+        """Lineage risk of moving this goat into ``area`` (advisory).
+
+        Compares this goat against every goat currently in the area and returns
+        the highest risk found plus the related goats. Never blocks.
+        """
+        severity = [RiskLevel.NONE, RiskLevel.RELATED, RiskLevel.CLOSELY_RELATED]
+        overall = RiskLevel.NONE
+        related = []
+        for other in area.goats.exclude(pk=self.pk):
+            risk = self.relationship_risk(other, depth)
+            if risk != RiskLevel.NONE:
+                related.append((other, risk))
+                if severity.index(risk) > severity.index(overall):
+                    overall = risk
+        return PenAssessment(risk_level=overall, related_goats=related)
 
 
 # ── QRCode ───────────────────────────────────────────────────────────
