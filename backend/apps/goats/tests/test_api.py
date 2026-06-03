@@ -7,8 +7,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
-from apps.goats.models import Goat
-from apps.goats.tests.factories import GoatFactory
+from apps.goats.models import AreaTransferLog, Goat
+from apps.goats.tests.factories import AreaFactory, GoatFactory
 
 pytestmark = pytest.mark.django_db
 
@@ -117,6 +117,96 @@ def test_regenerate_qr_requires_auth(anon):
     goat = GoatFactory()
     resp = anon.post(f"{detail_url(goat.id)}qr/")
     assert resp.status_code == 401
+
+
+# ── areas ────────────────────────────────────────────────────────────
+AREAS_URL = "/api/v1/areas/"
+
+
+def test_list_areas_requires_auth(anon):
+    assert anon.get(AREAS_URL).status_code == 401
+
+
+def test_list_areas_returns_areas(admin):
+    AreaFactory.create_batch(2)
+    resp = admin.get(AREAS_URL)
+    assert resp.status_code == 200
+    assert resp.data["count"] == 2
+
+
+def test_create_area(admin):
+    resp = admin.post(
+        AREAS_URL, {"name": "Pen A", "capacity": 20}, format="json"
+    )
+    assert resp.status_code == 201
+
+
+def test_area_serializer_includes_goat_count(admin):
+    area = AreaFactory()
+    GoatFactory.create_batch(2, current_area=area)
+    resp = admin.get(f"{AREAS_URL}{area.id}/")
+    assert resp.data["goat_count"] == 2
+
+
+# ── transfer ─────────────────────────────────────────────────────────
+def transfer_url(goat_id):
+    return f"/api/v1/goats/{goat_id}/transfer/"
+
+
+def test_transfer_requires_auth(anon):
+    goat = GoatFactory()
+    area = AreaFactory()
+    resp = anon.post(
+        transfer_url(goat.id), {"target_area_id": str(area.id)}, format="json"
+    )
+    assert resp.status_code == 401
+
+
+def test_transfer_to_valid_area_returns_200_with_risk_level(admin):
+    goat = GoatFactory()
+    area = AreaFactory()
+    resp = admin.post(
+        transfer_url(goat.id), {"target_area_id": str(area.id)}, format="json"
+    )
+    assert resp.status_code == 200
+    assert resp.data["risk_level"] == "none"
+
+
+def test_transfer_to_area_with_sibling_returns_closely_related(admin):
+    dam = GoatFactory(sex="F")
+    area = AreaFactory()
+    GoatFactory(dam=dam, current_area=area)  # resident sibling
+    candidate = GoatFactory(dam=dam)
+    resp = admin.post(
+        transfer_url(candidate.id), {"target_area_id": str(area.id)}, format="json"
+    )
+    assert resp.data["risk_level"] == "closely_related"
+    assert len(resp.data["related_goats"]) == 1
+
+
+def test_transfer_writes_log_and_updates_area(admin):
+    goat = GoatFactory()
+    area = AreaFactory()
+    admin.post(
+        transfer_url(goat.id),
+        {"target_area_id": str(area.id), "reason": "weaning"},
+        format="json",
+    )
+    goat.refresh_from_db()
+    assert goat.current_area == area
+    log = AreaTransferLog.objects.get(goat=goat)
+    assert log.to_area == area
+    assert log.reason == "weaning"
+
+
+def test_transfer_to_unknown_area_returns_404(admin):
+    import uuid
+
+    goat = GoatFactory()
+    resp = admin.post(
+        transfer_url(goat.id), {"target_area_id": str(uuid.uuid4())}, format="json"
+    )
+    assert resp.status_code == 404
 
 
 # ── expired token ────────────────────────────────────────────────────

@@ -64,3 +64,33 @@ def test_can_proceed_is_always_true_even_when_closely_related():
     GoatFactory(dam=dam, current_area=area)
     candidate = GoatFactory(dam=dam)
     assert candidate.assess_area(area).can_proceed is True
+
+
+# ── transfer_to (model method) ───────────────────────────────────────
+def test_transfer_to_updates_current_area():
+    origin = AreaFactory()
+    destination = AreaFactory()
+    goat = GoatFactory(current_area=origin)
+    goat.transfer_to(destination, reason="weaning", by="owner")
+    goat.refresh_from_db()
+    assert goat.current_area == destination
+
+
+def test_transfer_to_writes_log_with_risk_and_origin():
+    origin = AreaFactory()
+    destination = AreaFactory()
+    goat = GoatFactory(current_area=origin)
+    result = goat.transfer_to(destination, reason="weaning", by="owner")
+    log = result.log
+    assert log.from_area == origin
+    assert log.to_area == destination
+    assert log.risk_level == RiskLevel.NONE
+    assert log.transferred_by == "owner"
+    assert goat.transfer_logs.count() == 1
+
+
+def test_transfer_to_first_assignment_has_null_from_area():
+    destination = AreaFactory()
+    goat = GoatFactory(current_area=None)
+    result = goat.transfer_to(destination, by="owner")
+    assert result.log.from_area is None
