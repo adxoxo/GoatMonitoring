@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useGoatProfile } from '@/hooks/useGoatProfile'
 import { useRegenerateQr } from '@/hooks/useRegenerateQr'
 import QrTagCard from '@/components/admin/QrTagCard'
+import LineageTree from '@/components/admin/LineageTree'
 
 // Admin goat detail. Phase 2 wires the identity header + QR tag block; the full
 // lineage tree and health history arrive in Phases 3–4.
@@ -43,6 +44,10 @@ export default function GoatDetail() {
           onRegenerate={() => regenerate.mutate()}
           isRegenerating={regenerate.isPending}
         />
+      </div>
+
+      <div className="mt-4">
+        <LineageTree lineage={goat.lineage} />
       </div>
     </div>
   )
