@@ -75,6 +75,7 @@ class GoatProfileSerializer(serializers.ModelSerializer):
     qr_image_url = serializers.SerializerMethodField()
     is_overdue = serializers.SerializerMethodField()
     recent_health = serializers.SerializerMethodField()
+    lineage = serializers.SerializerMethodField()
 
     class Meta:
         model = Goat
@@ -90,6 +91,7 @@ class GoatProfileSerializer(serializers.ModelSerializer):
             "qr_image_url",
             "is_overdue",
             "recent_health",
+            "lineage",
         ]
 
     def get_age_display(self, goat):
@@ -118,6 +120,27 @@ class GoatProfileSerializer(serializers.ModelSerializer):
             }
             for r in records
         ]
+
+    def get_lineage(self, goat):
+        """Parents and grandparents (2 generations) for the lineage tree.
+
+        Null where unknown. The frontend renders these as "Unknown".
+        """
+
+        def node(g):
+            if g is None:
+                return None
+            return {"id": str(g.id), "tag_number": g.tag_number, "name": g.name}
+
+        sire, dam = goat.sire, goat.dam
+        return {
+            "sire": node(sire),
+            "dam": node(dam),
+            "paternal_grandsire": node(sire.sire if sire else None),
+            "paternal_granddam": node(sire.dam if sire else None),
+            "maternal_grandsire": node(dam.sire if dam else None),
+            "maternal_granddam": node(dam.dam if dam else None),
+        }
 
 
 class GoatCreateSerializer(serializers.ModelSerializer):
