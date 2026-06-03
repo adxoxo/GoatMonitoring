@@ -41,8 +41,6 @@ def test_refresh_token_returns_new_access_token(client, admin_user):
     login = client.post(
         TOKEN_URL, {"username": "owner", "password": "goat-pw-123"}, format="json"
     )
-    resp = client.post(
-        REFRESH_URL, {"refresh": login.data["refresh"]}, format="json"
-    )
+    resp = client.post(REFRESH_URL, {"refresh": login.data["refresh"]}, format="json")
     assert resp.status_code == 200
     assert "access" in resp.data
