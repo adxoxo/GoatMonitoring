@@ -74,10 +74,11 @@ class HealthRecordCreateSerializer(serializers.ModelSerializer):
             "record_type",
             "description",
             "record_date",
+            "next_due_date",
             "administered_by",
             "vaccination",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "next_due_date"]
 
     def create(self, validated_data):
         return HealthRecord.log(**validated_data)
