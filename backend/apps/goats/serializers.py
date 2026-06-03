@@ -101,7 +101,11 @@ class GoatProfileSerializer(serializers.ModelSerializer):
         active = goat.qr_codes.filter(is_active=True).first()
         if not active:
             return None
-        return f"{settings.MEDIA_URL}{active.image_path}"
+        url = f"{settings.MEDIA_URL}{active.image_path}"
+        # Absolute URL so the SPA (served from a different origin in dev) loads
+        # the image from the API/media host, not its own origin.
+        request = self.context.get("request")
+        return request.build_absolute_uri(url) if request else url
 
     def get_is_overdue(self, goat):
         today = date.today()
