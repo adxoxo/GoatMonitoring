@@ -10,6 +10,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from apps.goats.models import Area, Goat
 from apps.goats.serializers import (
@@ -19,6 +20,7 @@ from apps.goats.serializers import (
     GoatSerializer,
     GoatTransferSerializer,
 )
+from apps.health.serializers import HealthRecordSerializer, WorkerHealthLogSerializer
 from apps.qr import qrcode
 
 
@@ -32,7 +34,8 @@ class GoatViewSet(viewsets.ModelViewSet):
     queryset = Goat.objects.all()
 
     def get_permissions(self):
-        if self.action == "retrieve":
+        # Public: worker QR-scan profile (retrieve) and worker health log (log).
+        if self.action in ("retrieve", "log"):
             return [AllowAny()]
         return [IsAuthenticated()]
 
@@ -94,6 +97,27 @@ class GoatViewSet(viewsets.ModelViewSet):
             by=getattr(request.user, "username", "admin"),
         )
         return Response(GoatTransferSerializer(result).data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="log",
+        throttle_classes=[ScopedRateThrottle],
+    )
+    def log(self, request, pk=None):
+        """Worker quick health-note log — public, no auth (CLAUDE.md Option 1).
+
+        Server timestamps the entry; workers cannot set record_date.
+        """
+        goat = self.get_object()
+        serializer = WorkerHealthLogSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        record = serializer.save(goat=goat)
+        return Response(
+            HealthRecordSerializer(record).data, status=status.HTTP_201_CREATED
+        )
+
+    log.throttle_scope = "worker_log"
 
 
 def _get_area_or_none(area_id):
