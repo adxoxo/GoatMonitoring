@@ -135,9 +135,7 @@ def test_list_areas_returns_areas(admin):
 
 
 def test_create_area(admin):
-    resp = admin.post(
-        AREAS_URL, {"name": "Pen A", "capacity": 20}, format="json"
-    )
+    resp = admin.post(AREAS_URL, {"name": "Pen A", "capacity": 20}, format="json")
     assert resp.status_code == 201
 
 
