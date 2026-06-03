@@ -100,6 +100,59 @@ class Goat(models.Model):
     def __str__(self):
         return f"{self.tag_number} — {self.name}"
 
+    # ── lineage ──────────────────────────────────────────────────────
+    def ancestor_depths(self, depth=3):
+        """Map each ancestor id → its shallowest generation distance (1..depth).
+
+        Pure-Python walk up the sire/dam tree. Excludes self. DB-agnostic and
+        fast for the herd size here (≤ 2**depth ancestors).
+        """
+        depths = {}
+        frontier = [(self, 0)]
+        while frontier:
+            goat, dist = frontier.pop()
+            if dist >= depth:
+                continue
+            for parent in (goat.sire, goat.dam):
+                if parent is None:
+                    continue
+                nxt = dist + 1
+                if parent.id not in depths or nxt < depths[parent.id]:
+                    depths[parent.id] = nxt
+                    frontier.append((parent, nxt))
+        return depths
+
+    def get_ancestor_ids(self, depth=3):
+        return set(self.ancestor_depths(depth).keys())
+
+    def relationship_risk(self, other, depth=3):
+        """Lineage/inbreeding risk between this goat and ``other``.
+
+        - direct ancestor/descendant, or a shared parent (full/half sibling)
+          → CLOSELY_RELATED
+        - any other shared ancestor within ``depth`` generations → RELATED
+        - otherwise → NONE
+        """
+        if self.pk == other.pk:
+            return RiskLevel.NONE
+
+        mine = self.ancestor_depths(depth)
+        theirs = other.ancestor_depths(depth)
+
+        # Direct line: one is an ancestor of the other.
+        if other.id in mine or self.id in theirs:
+            return RiskLevel.CLOSELY_RELATED
+
+        common = set(mine) & set(theirs)
+        if not common:
+            return RiskLevel.NONE
+
+        # A shared parent (depth 1 on both sides) means siblings.
+        if any(mine[anc] == 1 and theirs[anc] == 1 for anc in common):
+            return RiskLevel.CLOSELY_RELATED
+
+        return RiskLevel.RELATED
+
 
 # ── QRCode ───────────────────────────────────────────────────────────
 class QRCode(models.Model):
