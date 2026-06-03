@@ -9,7 +9,7 @@ from datetime import date
 from django.conf import settings
 from rest_framework import serializers
 
-from apps.goats.models import Goat
+from apps.goats.models import Area, Goat, RiskLevel
 
 
 def format_age(dob):
@@ -137,3 +137,60 @@ class GoatCreateSerializer(serializers.ModelSerializer):
             "dam",
         ]
         read_only_fields = ["id"]
+
+
+class AreaSerializer(serializers.ModelSerializer):
+    """Area (pen) with a live count of the goats currently assigned to it."""
+
+    goat_count = serializers.IntegerField(source="goats.count", read_only=True)
+
+    class Meta:
+        model = Area
+        fields = ["id", "name", "description", "capacity", "goat_count", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+
+class GoatTransferSerializer(serializers.Serializer):
+    """Output for a transfer: goat, risk level, audit log, and related goats."""
+
+    goat = serializers.SerializerMethodField()
+    risk_level = serializers.SerializerMethodField()
+    risk_level_display = serializers.SerializerMethodField()
+    transfer_log = serializers.SerializerMethodField()
+    related_goats = serializers.SerializerMethodField()
+
+    def get_goat(self, result):
+        goat = result.goat
+        return {
+            "id": str(goat.id),
+            "tag_number": goat.tag_number,
+            "current_area": str(goat.current_area_id) if goat.current_area_id else None,
+        }
+
+    def get_risk_level(self, result):
+        return result.assessment.risk_level
+
+    def get_risk_level_display(self, result):
+        return RiskLevel(result.assessment.risk_level).label
+
+    def get_transfer_log(self, result):
+        log = result.log
+        return {
+            "id": str(log.id),
+            "from_area": str(log.from_area_id) if log.from_area_id else None,
+            "to_area": str(log.to_area_id),
+            "reason": log.reason,
+            "transferred_at": log.transferred_at,
+            "transferred_by": log.transferred_by,
+        }
+
+    def get_related_goats(self, result):
+        return [
+            {
+                "id": str(goat.id),
+                "tag_number": goat.tag_number,
+                "name": goat.name,
+                "risk_level": risk,
+            }
+            for goat, risk in result.assessment.related_goats
+        ]

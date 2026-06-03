@@ -19,6 +19,15 @@ class PenAssessment:
     can_proceed: bool = True  # the system advises, never blocks
 
 
+@dataclass
+class TransferResult:
+    """Outcome of a transfer: the moved goat, the audit log, and the risk."""
+
+    goat: object
+    log: object
+    assessment: PenAssessment
+
+
 # ── Area ─────────────────────────────────────────────────────────────
 class Area(models.Model):
     """A physical location on the farm that holds goats (pen, nursery, etc.)."""
@@ -179,6 +188,25 @@ class Goat(models.Model):
                 if severity.index(risk) > severity.index(overall):
                     overall = risk
         return PenAssessment(risk_level=overall, related_goats=related)
+
+    def transfer_to(self, target_area, reason="", by="system"):
+        """Move this goat into ``target_area``, recording an audit log.
+
+        Assesses lineage risk first (advisory — never blocks the move), writes
+        an AreaTransferLog regardless of risk, then updates current_area.
+        """
+        assessment = self.assess_area(target_area)
+        log = AreaTransferLog.objects.create(
+            goat=self,
+            from_area=self.current_area,
+            to_area=target_area,
+            reason=reason,
+            risk_level=assessment.risk_level,
+            transferred_by=by,
+        )
+        self.current_area = target_area
+        self.save(update_fields=["current_area", "updated_at"])
+        return TransferResult(goat=self, log=log, assessment=assessment)
 
 
 # ── QRCode ───────────────────────────────────────────────────────────
