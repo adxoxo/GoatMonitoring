@@ -4,17 +4,20 @@ Standard Django/DRF: a ModelViewSet using the ORM directly. The only domain
 touch is generating a QR on registration / on demand (apps/qr/qrcode.py).
 """
 
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from apps.goats.models import Goat
+from apps.goats.models import Area, Goat
 from apps.goats.serializers import (
+    AreaSerializer,
     GoatCreateSerializer,
     GoatProfileSerializer,
     GoatSerializer,
+    GoatTransferSerializer,
 )
 from apps.qr import qrcode
 
@@ -71,3 +74,40 @@ class GoatViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_201_CREATED,
         )
+
+    @action(detail=True, methods=["post"], url_path="transfer")
+    def transfer(self, request, pk=None):
+        """Move this goat to another area (admin).
+
+        Returns the lineage risk level — advisory only, the move always
+        proceeds and is always logged.
+        """
+        goat = self.get_object()
+        area = _get_area_or_none(request.data.get("target_area_id"))
+        if area is None:
+            return Response(
+                {"detail": "Area not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        result = goat.transfer_to(
+            area,
+            reason=request.data.get("reason", ""),
+            by=getattr(request.user, "username", "admin"),
+        )
+        return Response(GoatTransferSerializer(result).data)
+
+
+def _get_area_or_none(area_id):
+    if not area_id:
+        return None
+    try:
+        return Area.objects.filter(pk=area_id).first()
+    except (ValueError, ValidationError):  # malformed UUID
+        return None
+
+
+class AreaViewSet(viewsets.ModelViewSet):
+    """Areas (pens). Admin only."""
+
+    queryset = Area.objects.all()
+    serializer_class = AreaSerializer
+    permission_classes = [IsAuthenticated]

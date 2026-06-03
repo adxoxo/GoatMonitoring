@@ -5,8 +5,27 @@ never deleted; their ``status`` changes instead so all history is preserved.
 """
 
 import uuid
+from dataclasses import dataclass, field
 
 from django.db import models
+
+
+@dataclass
+class PenAssessment:
+    """Result of checking whether a goat can join an area (advisory only)."""
+
+    risk_level: str
+    related_goats: list = field(default_factory=list)  # [(Goat, RiskLevel), ...]
+    can_proceed: bool = True  # the system advises, never blocks
+
+
+@dataclass
+class TransferResult:
+    """Outcome of a transfer: the moved goat, the audit log, and the risk."""
+
+    goat: object
+    log: object
+    assessment: PenAssessment
 
 
 # ── Area ─────────────────────────────────────────────────────────────
@@ -99,6 +118,95 @@ class Goat(models.Model):
 
     def __str__(self):
         return f"{self.tag_number} — {self.name}"
+
+    # ── lineage ──────────────────────────────────────────────────────
+    def ancestor_depths(self, depth=3):
+        """Map each ancestor id → its shallowest generation distance (1..depth).
+
+        Pure-Python walk up the sire/dam tree. Excludes self. DB-agnostic and
+        fast for the herd size here (≤ 2**depth ancestors).
+        """
+        depths = {}
+        frontier = [(self, 0)]
+        while frontier:
+            goat, dist = frontier.pop()
+            if dist >= depth:
+                continue
+            for parent in (goat.sire, goat.dam):
+                if parent is None:
+                    continue
+                nxt = dist + 1
+                if parent.id not in depths or nxt < depths[parent.id]:
+                    depths[parent.id] = nxt
+                    frontier.append((parent, nxt))
+        return depths
+
+    def get_ancestor_ids(self, depth=3):
+        return set(self.ancestor_depths(depth).keys())
+
+    def relationship_risk(self, other, depth=3):
+        """Lineage/inbreeding risk between this goat and ``other``.
+
+        - direct ancestor/descendant, or a shared parent (full/half sibling)
+          → CLOSELY_RELATED
+        - any other shared ancestor within ``depth`` generations → RELATED
+        - otherwise → NONE
+        """
+        if self.pk == other.pk:
+            return RiskLevel.NONE
+
+        mine = self.ancestor_depths(depth)
+        theirs = other.ancestor_depths(depth)
+
+        # Direct line: one is an ancestor of the other.
+        if other.id in mine or self.id in theirs:
+            return RiskLevel.CLOSELY_RELATED
+
+        common = set(mine) & set(theirs)
+        if not common:
+            return RiskLevel.NONE
+
+        # A shared parent (depth 1 on both sides) means siblings.
+        if any(mine[anc] == 1 and theirs[anc] == 1 for anc in common):
+            return RiskLevel.CLOSELY_RELATED
+
+        return RiskLevel.RELATED
+
+    def assess_area(self, area, depth=3):
+        """Lineage risk of moving this goat into ``area`` (advisory).
+
+        Compares this goat against every goat currently in the area and returns
+        the highest risk found plus the related goats. Never blocks.
+        """
+        severity = [RiskLevel.NONE, RiskLevel.RELATED, RiskLevel.CLOSELY_RELATED]
+        overall = RiskLevel.NONE
+        related = []
+        for other in area.goats.exclude(pk=self.pk):
+            risk = self.relationship_risk(other, depth)
+            if risk != RiskLevel.NONE:
+                related.append((other, risk))
+                if severity.index(risk) > severity.index(overall):
+                    overall = risk
+        return PenAssessment(risk_level=overall, related_goats=related)
+
+    def transfer_to(self, target_area, reason="", by="system"):
+        """Move this goat into ``target_area``, recording an audit log.
+
+        Assesses lineage risk first (advisory — never blocks the move), writes
+        an AreaTransferLog regardless of risk, then updates current_area.
+        """
+        assessment = self.assess_area(target_area)
+        log = AreaTransferLog.objects.create(
+            goat=self,
+            from_area=self.current_area,
+            to_area=target_area,
+            reason=reason,
+            risk_level=assessment.risk_level,
+            transferred_by=by,
+        )
+        self.current_area = target_area
+        self.save(update_fields=["current_area", "updated_at"])
+        return TransferResult(goat=self, log=log, assessment=assessment)
 
 
 # ── QRCode ───────────────────────────────────────────────────────────
