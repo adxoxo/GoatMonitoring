@@ -37,8 +37,12 @@ describe('Areas page', () => {
   it('renders a card for each pen with its goat count and capacity', async () => {
     mockData()
     renderAreas()
-    expect(await screen.findByText('Pen A — Does')).toBeInTheDocument()
-    expect(screen.getByText('Quarantine')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Pen A — Does' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: 'Quarantine' }),
+    ).toBeInTheDocument()
     expect(screen.getByText(/12\s*\/\s*20/)).toBeInTheDocument()
   })
 })
