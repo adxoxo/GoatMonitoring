@@ -51,6 +51,18 @@ def test_profile_serializer_qr_image_url_from_active_qr():
     assert data["qr_image_url"].endswith("qr/active.png")
 
 
+def test_profile_serializer_qr_image_url_is_absolute_with_request():
+    from rest_framework.test import APIRequestFactory
+
+    goat = GoatFactory()
+    QRCode.objects.create(goat=goat, image_path="qr/active.png")
+    request = APIRequestFactory().get("/")
+    data = GoatProfileSerializer(goat, context={"request": request}).data
+    # absolute (scheme+host) so the SPA on :5173 loads it from the API host
+    assert data["qr_image_url"].startswith("http")
+    assert data["qr_image_url"].endswith("/media/qr/active.png")
+
+
 def test_profile_serializer_is_overdue_true_when_past_due():
     goat = GoatFactory()
     HealthRecordFactory(

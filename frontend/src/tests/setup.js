@@ -6,5 +6,8 @@ import { server } from './server'
 
 // MSW lifecycle — unhandled requests fail loudly so tests can't hit the network.
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
-afterEach(() => server.resetHandlers())
+afterEach(() => {
+  server.resetHandlers()
+  localStorage.clear() // don't leak auth tokens between tests
+})
 afterAll(() => server.close())

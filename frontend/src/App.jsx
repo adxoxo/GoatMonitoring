@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import AppShell from '@/components/shared/AppShell'
+import Login from '@/pages/Login'
 import Dashboard from '@/pages/admin/Dashboard'
 import GoatList from '@/pages/admin/GoatList'
 import GoatDetail from '@/pages/admin/GoatDetail'
@@ -24,7 +25,10 @@ export default function App() {
           {/* Worker view — public QR-scan landing, no admin chrome */}
           <Route path="/g/:uuid" element={<GoatProfile />} />
 
-          {/* Admin — wrapped in the dashboard shell */}
+          {/* Admin login — public */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Admin — wrapped in the dashboard shell (auth-guarded) */}
           <Route element={<AppShell />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />

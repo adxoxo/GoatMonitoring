@@ -21,5 +21,10 @@ export default defineConfig({
     setupFiles: './src/tests/setup.js',
     css: true,
     passWithNoTests: true,
+    // Pin the API base in tests so MSW handlers match regardless of .env
+    // (dev/.env points at localhost:8000; tests mock goatfarm.local).
+    env: {
+      VITE_API_BASE_URL: 'http://goatfarm.local/api/v1',
+    },
   },
 })

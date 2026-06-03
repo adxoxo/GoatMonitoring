@@ -1,10 +1,13 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   IconLayoutDashboard,
   IconListDetails,
   IconFence,
   IconHeartbeat,
+  IconLogout,
 } from '@tabler/icons-react'
+
+import { isAuthenticated, logout } from '@/hooks/useAuth'
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: IconLayoutDashboard },
@@ -47,6 +50,17 @@ function tabItemClass({ isActive }) {
 
 export default function AppShell() {
   const location = useLocation()
+  const navigate = useNavigate()
+
+  // Admin pages require a token; worker QR pages and /login are public.
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />
+  }
+
+  function handleLogout() {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <div className="min-h-svh md:flex">
@@ -89,9 +103,20 @@ export default function AppShell() {
           <h1 className="font-heading text-base font-semibold text-soil">
             {pageTitle(location.pathname)}
           </h1>
-          <span className="font-mono text-[10px] uppercase tracking-wider text-rust">
-            goatfarm.local
-          </span>
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-rust">
+              goatfarm.local
+            </span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Log out"
+              className="flex cursor-pointer items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-leather hover:text-clay"
+            >
+              <IconLogout size={14} aria-hidden="true" />
+              Log out
+            </button>
+          </div>
         </header>
 
         {/* extra bottom padding clears the mobile tab bar */}
