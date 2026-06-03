@@ -59,9 +59,10 @@ describe('Dashboard', () => {
   it('shows overdue alerts in red', async () => {
     mockAll()
     const { container } = renderDashboard()
-    await screen.findByText(/total goats/i)
-    // the overdue alert row carries an alert-toned element
-    expect(container.querySelector('.border-alert, .text-alert')).toBeTruthy()
+    // wait for the alerts query to resolve (badge text is the lowercase status)
+    await screen.findByText('overdue')
+    // the overdue alert row carries an alert-toned (red) element
+    expect(container.querySelector('.border-alert')).toBeTruthy()
   })
 
   it('renders correctly on a mobile viewport (375px)', async () => {
