@@ -131,6 +131,9 @@ STATIC_ROOT = BASE_DIR / "static" / "staticfiles"
 MEDIA_URL = env("MEDIA_URL", "/media/")
 MEDIA_ROOT = env("MEDIA_ROOT", str(BASE_DIR / "media"))
 
+# Hostname encoded into QR codes (http://{host}/g/{uuid}).
+FARM_LOCAL_HOSTNAME = env("FARM_LOCAL_HOSTNAME", "goatfarm.local")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
