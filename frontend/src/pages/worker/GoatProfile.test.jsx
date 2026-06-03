@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { http, HttpResponse, delay } from 'msw'
 
 import { server } from '@/tests/server'
