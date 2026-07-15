@@ -7,9 +7,6 @@ code — scanning it opens that goat's profile instantly in any phone browser on
 the farm WiFi. The whole system runs on one on-premise server with **zero cloud
 dependencies** for core functionality; the internet is treated as optional.
 
-> Full context lives in [CLAUDE.md](CLAUDE.md), [ARCHITECTURE.md](ARCHITECTURE.md),
-> and [BUILDPLAN.md](BUILDPLAN.md). Read those before contributing.
-
 ---
 
 ## Stack
@@ -87,7 +84,7 @@ pytest
 npm test
 ```
 
-Both follow TDD — RED → GREEN → REFACTOR. See [BUILDPLAN.md](BUILDPLAN.md).
+Both follow TDD (RED, GREEN, REFACTOR).
 
 Without Docker you can still run the frontend (`npm install && npm run dev`)
 and its tests, and the backend test suite/`manage.py check` via a local
@@ -105,7 +102,7 @@ docker compose up --build -d
 
 The backend entrypoint runs migrations and `collectstatic` automatically, then
 starts Gunicorn. Nginx serves the built SPA, proxies `/api/`, and serves
-`/media/` (QR images). A UPS on the server is **required** — see ARCHITECTURE.md.
+`/media/` (QR images). A UPS on the server is **required**.
 
 ### LAN hostname — `goatfarm.local`
 
@@ -124,8 +121,7 @@ If mDNS is unavailable, use the server's LAN IP directly and add it to
 
 ## Phase 0 connectivity checklist
 
-Run these on a machine with Docker to confirm the stack is wired end-to-end
-(from BUILDPLAN.md §0.4):
+Run these on a machine with Docker to confirm the stack is wired end-to-end:
 
 - [ ] `docker compose up` starts all services with no errors
 - [ ] `db` container reports healthy
@@ -143,7 +139,7 @@ Run these on a machine with Docker to confirm the stack is wired end-to-end
 ## Conventions
 
 - Strict five-layer architecture — Presentation → API → Service → Data → Infra.
-  Each layer talks only to the one below. See ARCHITECTURE.md for the hard rules.
+  Each layer talks only to the one below.
 - Conventional commits (`feat:`, `fix:`, `test:`, `refactor:`, `chore:`, `docs:`).
 - Python: PEP 8 / Black / isort. JS: ESLint / Prettier.
-- The visual design system is **locked** — see CLAUDE.md before touching UI.
+- The visual design system is **locked**.
